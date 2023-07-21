@@ -1,4 +1,0 @@
-// 参数设置示例
-period = 60 // K線週期(分)
-lotSize = 1.0 // 下單手數
-stopLossPercentage = 1.0 // 止損百分比

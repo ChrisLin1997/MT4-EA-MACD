@@ -3,15 +3,13 @@
 #property version   "1.00"
 #property strict
 // 设置变量
-extern int period = 15;  // K線周期
 extern double lotSize = 0.01;  // 下單手數
 extern int stopLossPoint = 20; // 止損加點
+extern int stopLossMode = 1; // 止損方式，1為當根K棒設置止損，2為近期X根K棒的最高價或最低價
+extern int recentBars = 5;   // 止損方式：近幾根K棒
 
 int lastBar = 0;  // 上一次处理的K线序号
 
-//+------------------------------------------------------------------+
-//| Expert initialization function                                   |
-//+------------------------------------------------------------------+
 int OnInit()
 {
     return(INIT_SUCCEEDED);
@@ -46,6 +44,9 @@ void ExecuteTradingLogic()
     // 獲取MACD值
     double macdCurrent = iMACD(NULL, 0, fastEMA, slowEMA, signalSMA, PRICE_CLOSE, MODE_MAIN, 0);
     double macdPrevious = iMACD(NULL, 0, fastEMA, slowEMA, signalSMA, PRICE_CLOSE, MODE_MAIN, 1);
+
+    // 止損價格
+    double stopLossLevel;
 
     // 有持倉時
     if (positions > 0)
@@ -90,7 +91,15 @@ void ExecuteTradingLogic()
         if (macdCurrent >= 0 && macdPrevious < 0 &&
             Close[0] > iMA(NULL, 0, 89, 0, MODE_SMA, PRICE_CLOSE, 0))
         {
-            double stopLossLevel = Low[0] - stopLossPoint * Point; 
+            // 止損方式
+            if (stopLossMode == 1) {
+              stopLossMode = Low[0] - stopLossPoint * Point;
+            }
+            if (stopLossMode == 2) {
+              stopLossMode = Low[iLowest(NULL, 0, MODE_LOW, recentBars, 1)]; 
+            }
+
+            // 發送訂單
             OrderSend(Symbol(), OP_BUY, lotSize, Ask, 0, stopLossLevel, 0.0, "Long Trade", 0, 0, Green);
             return;
         }
@@ -99,7 +108,15 @@ void ExecuteTradingLogic()
         if (macdCurrent <= 0 && macdPrevious > 0 &&
             Close[0] < iMA(NULL, 0, 89, 0, MODE_SMA, PRICE_CLOSE, 0))
         {
-            double stopLossLevel = High[0] + stopLossPoint * Point;
+            // 止損方式
+            if (stopLossMode == 1) {
+              stopLossMode = High[0] + stopLossPoint * Point;
+            }
+            if (stopLossMode == 2) {
+              stopLossMode = High[iHighest(NULL, 0, MODE_HIGH, recentBars, 1)];
+            }
+
+            // 發送訂單
             OrderSend(Symbol(), OP_SELL, lotSize, Bid, 0, stopLossLevel, 0.0, "Short Trade", 0, 0, Red);
             return;
         }
